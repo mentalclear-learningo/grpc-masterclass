@@ -6,6 +6,7 @@ import (
 	"grpc-masterclass/greet/greetpb"
 	"io"
 	"log"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -29,6 +30,58 @@ func main() {
 
 	// Server Stream
 	doServerStreaming(c)
+
+	// ClientStereaming
+	doClientStreaming(c)
+}
+
+func doClientStreaming(c greetpb.GreetServiceClient) {
+	fmt.Println("Starting Client Streaming RPC...")
+
+	reqs := []*greetpb.LongGreetRequest{
+		{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Dmitrii",
+			},
+		},
+		{
+			Greeting: &greetpb.Greeting{
+				FirstName: "John",
+			},
+		},
+		{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Lucy",
+			},
+		},
+		{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Carmen",
+			},
+		},
+		{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Andrew",
+			},
+		},
+	}
+
+	stream, err := c.LongGreet(context.Background())
+	if err != nil {
+		log.Fatalln("error while calling LongGreet RPC:", err)
+	}
+	// Iterate over the slice and send each message
+	for _, req := range reqs {
+		fmt.Println("Sending request:", req)
+		stream.Send(req)
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalln("error while receiving response from LongGreet RPC:", err)
+	}
+	fmt.Println("LongGreet Response:", res)
 }
 
 func doServerStreaming(c greetpb.GreetServiceClient) {

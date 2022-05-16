@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"grpc-masterclass/greet/greetpb"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -15,6 +16,27 @@ import (
 type server struct {
 	// This is required. Otherwise won't compile
 	greetpb.UnimplementedGreetServiceServer
+}
+
+func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
+	fmt.Println("LongGreet function invoked with a streaming request")
+
+	result := ""
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			//Done reading the client stream
+			return stream.SendAndClose(&greetpb.LongGreetResponse{
+				Result: result,
+			})
+		}
+		if err != nil {
+			log.Fatalln("Error while reading client stream:", err)
+		}
+
+		firstName := req.GetGreeting().GetFirstName()
+		result += "Hello " + firstName + "! "
+	}
 }
 
 func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb.GreetService_GreetManyTimesServer) error {
