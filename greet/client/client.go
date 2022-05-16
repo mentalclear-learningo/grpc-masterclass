@@ -54,7 +54,6 @@ func doServerStreaming(c greetpb.GreetServiceClient) {
 		}
 		log.Println("Response from GreetManyTimes:", msg.GetResult())
 	}
-
 }
 
 func doUnary(c greetpb.GreetServiceClient) {

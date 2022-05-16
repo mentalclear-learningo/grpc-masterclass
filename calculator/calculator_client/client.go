@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"grpc-masterclass/calculator/calculatorpb"
+	"io"
 	"log"
 
 	"google.golang.org/grpc"
@@ -25,6 +26,33 @@ func main() {
 
 	// Unary
 	doUnary(c)
+
+	// Server Streaming
+	doServerStreaming(c)
+}
+
+func doServerStreaming(c calculatorpb.CalculatorServiceClient) {
+	fmt.Println("Starting Prime Dcomp Server Streaming RPC...")
+	req := &calculatorpb.PrimeNumberDecompositionRequest{
+		Number: 12390392840,
+	}
+
+	stream, err := c.PrimeNumberDecomposition(context.Background(), req)
+
+	if err != nil {
+		log.Fatalln("error while calling PrimeNumberDecomposition RPC:", err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			// reached the end of the stream
+			break
+		}
+		if err != nil {
+			log.Fatalln("error while reading stream:", err)
+		}
+		log.Println("Response from PrimeNumberDecomposition:", res.GetPrimeFactor())
+	}
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient) {
