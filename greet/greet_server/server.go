@@ -18,6 +18,34 @@ type server struct {
 	greetpb.UnimplementedGreetServiceServer
 }
 
+func (*server) GreetEveryone(stream greetpb.GreetService_GreetEveryoneServer) error {
+	fmt.Println("GreetEveryone function invoked with a streaming request")
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			log.Fatalln("Error while reading client stream", err)
+			return err
+		}
+
+		firstName := req.GetGreeting().GetFirstName()
+		result := "Hello " + firstName + "! "
+
+		sendErr := stream.Send(&greetpb.GreetEveryoneResponse{
+			Result: result,
+		})
+		if sendErr != nil {
+			log.Fatalln("Error while reading client stream", sendErr)
+			return sendErr
+		}
+
+	}
+
+}
+
 func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
 	fmt.Println("LongGreet function invoked with a streaming request")
 
