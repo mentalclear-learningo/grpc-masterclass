@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -36,6 +38,38 @@ func main() {
 
 	// BiDi Streaming
 	doBiDiStreaming(c)
+
+	// Error Unary
+	doErrorUnary(c)
+}
+
+func doErrorUnary(c calculatorpb.CalculatorServiceClient) {
+	fmt.Println("Starting Error Unary RPC request...")
+
+	numbers := []int32{1, 4, 9, 16, 25, -9, -1}
+	for _, num := range numbers {
+		doErrorCall(c, num)
+	}
+}
+
+func doErrorCall(c calculatorpb.CalculatorServiceClient, number int32) {
+	res, err := c.SquareRoot(context.Background(), &calculatorpb.SquareRootRequest{Number: number})
+	if err != nil {
+
+		respErr, ok := status.FromError(err)
+		if ok {
+			log.Println("Error message from the server:", respErr.Message())
+			log.Println("Error code:", respErr.Code())
+			if respErr.Code() == codes.InvalidArgument {
+				log.Println("Probably a negative number was sent!")
+				return
+			}
+		} else {
+			log.Fatalln("Big Error calling SquareRoot RPC:", err)
+			return
+		}
+	}
+	log.Printf("Result for Square Root of number: %v, equals: %v\n", number, res.GetNumberRoot())
 }
 
 func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
@@ -56,7 +90,7 @@ func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
 			stream.Send(&calculatorpb.FindMaximumRequest{
 				Number: num,
 			})
-			time.Sleep(1 * time.Second)
+			time.Sleep(300 * time.Millisecond)
 		}
 		stream.CloseSend()
 	}()
