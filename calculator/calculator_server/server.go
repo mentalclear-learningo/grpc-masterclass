@@ -16,6 +16,30 @@ type server struct {
 	calculatorpb.UnimplementedCalculatorServiceServer
 }
 
+func (*server) FindMaximum(stream calculatorpb.CalculatorService_FindMaximumServer) error {
+	fmt.Println("FindMaximum function RPC started by a streaming request")
+	var maximum int32
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			log.Fatalln("Error while reading client stream:", err)
+		}
+		number := req.GetNumber()
+		if number > maximum {
+			maximum = number
+			sendErr := stream.Send(&calculatorpb.FindMaximumResponse{
+				Maximum: maximum,
+			})
+			if sendErr != nil {
+				log.Fatalln("Error while sending data to the client:", err)
+			}
+		}
+	}
+}
+
 func (*server) ComputeAverage(stream calculatorpb.CalculatorService_ComputeAverageServer) error {
 	fmt.Println("ComputeAverage function invoked with a streaming request")
 
@@ -39,27 +63,6 @@ func (*server) ComputeAverage(stream calculatorpb.CalculatorService_ComputeAvera
 		count++
 	}
 }
-
-// func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
-// 	fmt.Println("LongGreet function invoked with a streaming request")
-
-// 	result := ""
-// 	for {
-// 		req, err := stream.Recv()
-// 		if err == io.EOF {
-// 			//Done reading the client stream
-// 			return stream.SendAndClose(&greetpb.LongGreetResponse{
-// 				Result: result,
-// 			})
-// 		}
-// 		if err != nil {
-// 			log.Fatalln("Error while reading client stream:", err)
-// 		}
-
-// 		firstName := req.GetGreeting().GetFirstName()
-// 		result += "Hello " + firstName + "! "
-// 	}
-// }
 
 func (*server) PrimeNumberDecomposition(req *calculatorpb.PrimeNumberDecompositionRequest, stream calculatorpb.CalculatorService_PrimeNumberDecompositionServer) error {
 	fmt.Println("PrimeNumberDecomposition function invoked with request:", req)

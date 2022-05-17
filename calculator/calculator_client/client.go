@@ -6,6 +6,7 @@ import (
 	"grpc-masterclass/calculator/calculatorpb"
 	"io"
 	"log"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -32,6 +33,50 @@ func main() {
 
 	// Client Streaming
 	doClientStreaming(c)
+
+	// BiDi Streaming
+	doBiDiStreaming(c)
+}
+
+func doBiDiStreaming(c calculatorpb.CalculatorServiceClient) {
+	fmt.Println("Starting FindMaximum BiDi Streaming RPC...")
+
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Fatalln("error while opening stream:", err)
+	}
+
+	waitc := make(chan struct{})
+
+	// send go routine
+	go func() {
+		nums := []int32{4, 7, 2, 19, 4, 6, 32}
+		for _, num := range nums {
+			fmt.Println("Sending number:", num)
+			stream.Send(&calculatorpb.FindMaximumRequest{
+				Number: num,
+			})
+			time.Sleep(1 * time.Second)
+		}
+		stream.CloseSend()
+	}()
+
+	// receive go routine
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalln("error while reading server stream:", err)
+				break
+			}
+			fmt.Println("Received a new maximum:", res.GetMaximum())
+		}
+		close(waitc)
+	}()
+	<-waitc
 }
 
 func doClientStreaming(c calculatorpb.CalculatorServiceClient) {
