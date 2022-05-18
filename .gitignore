@@ -15,6 +15,7 @@
 # vendor/
 .vscode/
 
+# Ignoring local ssl certs.
 ssl/*.crt
 ssl/*.key
 ssl/*.pem
