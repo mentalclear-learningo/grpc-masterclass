@@ -9,3 +9,9 @@ The course is a bit outdated, but with slight changes it works good enough.
 
 `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
 `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2`
+
+### Local SSL/TLS Setup  
+
+Make sure to run instructions.sh to setup local certificates after cloning the repo.  
+This is required for the local server to work with SSL/TLS.  
+

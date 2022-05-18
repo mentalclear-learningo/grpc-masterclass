@@ -9,13 +9,22 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
 	fmt.Println("Report: I'm client, connectin' to the server now...")
 
-	cc, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	certFile := "ssl/ca.crt"
+	creds, sslErr := credentials.NewClientTLSFromFile(certFile, "")
+	if sslErr != nil {
+		log.Fatalln("failed loading certificates:", sslErr)
+	}
+
+	// cc, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials())) // For insecure mode.
+	cc, err := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalln("couldn't connect!", err)
 	}
@@ -36,6 +45,42 @@ func main() {
 
 	// BiDirectional Streaming
 	doBiDiStreaming(c)
+
+	// Unary with Deadline
+	doUnaryWithDeadline(c, 5000*time.Millisecond) // Should complete
+	doUnaryWithDeadline(c, 1000*time.Millisecond) // Should timeout
+}
+
+func doUnaryWithDeadline(c greetpb.GreetServiceClient, timeout time.Duration) {
+	fmt.Println("Starting Unary With Deadline RPC...")
+	req := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Dmitrii",
+			LastName:  "Kilishek",
+		},
+	}
+
+	// Context Timeout here for the client
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	res, err := c.GreetWithDeadline(ctx, req)
+	if err != nil {
+		statusErr, ok := status.FromError(err)
+		if ok {
+			log.Println("Error code:", statusErr.Code())
+			if statusErr.Code() == codes.DeadlineExceeded {
+				log.Println("the deadline was exceeded")
+			} else {
+				log.Println("unexpected error:", statusErr)
+			}
+		} else {
+			log.Fatalln("error while calling GreetWithDeadline RPC:", err)
+		}
+		return
+	}
+
+	log.Println("GreetWithDeadline Response: ", res.Result)
 }
 
 func doBiDiStreaming(c greetpb.GreetServiceClient) {
