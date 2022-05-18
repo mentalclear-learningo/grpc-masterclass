@@ -15,3 +15,7 @@ The course is a bit outdated, but with slight changes it works good enough.
 Make sure to run instructions.sh to setup local certificates after cloning the repo.  
 This is required for the local server to work with SSL/TLS.  
 
+### Evans client 
+
+Get Evans client from here:
+https://github.com/ktr0731/evans/releases
