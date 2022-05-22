@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -44,17 +45,54 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, fmt.Sprintln("internal error inserting into the database", err))
 	}
-	objId, ok := result.InsertedID.(primitive.ObjectID)
+	oid, ok := result.InsertedID.(primitive.ObjectID)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, fmt.Sprintln("internal error converting ObjectID", err))
 	}
 
 	return &blogpb.CreateBlogResponse{
 		Blog: &blogpb.Blog{
-			Id:       objId.Hex(), // ObjectID must be Hex
+			Id:       oid.Hex(), // ObjectID must be Hex
 			AuthorId: blog.GetAuthorId(),
 			Title:    blog.GetTitle(),
 			Content:  blog.GetContent(),
+		},
+	}, nil
+}
+
+func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
+	data := &blogItem{}                           // A data structure that will accept the results from collection findOne req from mongo
+	blogId := req.GetBlogId()                     // Getting Blog's ObjectID from the request
+	oid, err := primitive.ObjectIDFromHex(blogId) // Get ObjectID from hex
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("cannot parse provided ID %v", err))
+	}
+
+	// Based on the code examples from Go mongo package:
+	errDecode := collection.FindOne(ctx, bson.M{"_id": oid}).Decode(data)
+	if errDecode != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection.
+		if errDecode == mongo.ErrNoDocuments {
+			return nil, status.Errorf(
+				codes.NotFound,
+				fmt.Sprintf("cannot find the blog with the ID specified: %v", errDecode))
+		}
+		log.Fatal(errDecode)
+	}
+
+	// result := collection.FindOne(ctx, bson.M{"_id": oid}) // Filter here is the bson representation of ObjectID
+
+	// // Decoding result into the data structure
+	// if err := result.Decode(data); err != nil {
+	// 	return nil, status.Errorf(codes.NotFound, fmt.Sprintf("cannot find the blog with the ID specified: %v", err))
+	// }
+
+	return &blogpb.ReadBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       data.ID.Hex(), // ObjectID must be Hex
+			AuthorId: data.AuthorID,
+			Title:    data.Title,
+			Content:  data.Content,
 		},
 	}, nil
 }
