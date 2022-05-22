@@ -69,7 +69,7 @@ func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blog
 	}
 
 	// Based on the code examples from Go mongo package:
-	errDecode := collection.FindOne(ctx, bson.M{"_id": oid}).Decode(data)
+	errDecode := collection.FindOne(ctx, bson.M{"_id": oid}).Decode(data) // Decode puts data into empty data struct
 	if errDecode != nil {
 		// ErrNoDocuments means that the filter did not match any documents in the collection.
 		if errDecode == mongo.ErrNoDocuments {
@@ -80,7 +80,7 @@ func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blog
 		log.Fatal(errDecode)
 	}
 
-	// result := collection.FindOne(ctx, bson.M{"_id": oid}) // Filter here is the bson representation of ObjectID
+	// result := collection.FindOne(ctx, bson.M{"_id": oid}) // Filter: bson.M{"_id": oid} here is the bson representation of ObjectID
 
 	// // Decoding result into the data structure
 	// if err := result.Decode(data); err != nil {
@@ -95,6 +95,98 @@ func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blog
 			Content:  data.Content,
 		},
 	}, nil
+}
+
+func (*server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*blogpb.UpdateBlogResponse, error) {
+	data := &blogItem{}
+	blog := req.GetBlog()
+
+	oid, err := primitive.ObjectIDFromHex(blog.GetId()) // Get ObjectID from hex
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("cannot parse provided ID %v", err))
+	}
+
+	filter := bson.M{"_id": oid}
+	errDecode := collection.FindOne(ctx, filter).Decode(data)
+	if errDecode != nil {
+		// ErrNoDocuments means that the filter did not match any documents in the collection.
+		if errDecode == mongo.ErrNoDocuments {
+			return nil, status.Errorf(
+				codes.NotFound,
+				fmt.Sprintf("cannot find the blog with the ID specified: %v", errDecode))
+		}
+		log.Fatal(errDecode)
+	}
+
+	// Update internal struct
+	data.AuthorID = blog.GetAuthorId()
+	data.Title = blog.GetTitle()
+	data.Content = blog.GetContent()
+
+	_, updErr := collection.ReplaceOne(ctx, filter, data)
+	if updErr != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("cannot update object in MongoDB: %v", updErr),
+		)
+	}
+
+	return &blogpb.UpdateBlogResponse{
+		Blog: &blogpb.Blog{
+			AuthorId: data.AuthorID,
+			Title:    data.Title,
+			Content:  data.Content,
+		},
+	}, nil
+}
+
+func (*server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*blogpb.DeleteBlogResponse, error) {
+	oid, err := primitive.ObjectIDFromHex(req.GetBlogId()) // Get ObjectID from hex
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, fmt.Sprintf("cannot parse provided ID %v", err))
+	}
+
+	delRes, delErr := collection.DeleteOne(ctx, bson.M{"_id": oid})
+	if delErr != nil {
+		return nil, fmt.Errorf("error deleting record %v", delErr)
+	}
+
+	return &blogpb.DeleteBlogResponse{
+		Deleted: fmt.Sprintf("%v", delRes.DeletedCount),
+	}, nil
+}
+
+func (*server) ListBlog(req *blogpb.ListBlogRequest, stream blogpb.BlogService_ListBlogServer) error {
+	cursor, err := collection.Find(context.Background(), bson.M{})
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("unknow error in MongoDB: %v", err),
+		)
+	}
+	defer cursor.Close(context.Background())
+
+	results := []blogItem{}
+	if err = cursor.All(context.Background(), &results); err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("error decoding data from MongoDB: %v", err),
+		)
+	}
+
+	for _, result := range results {
+		res := &blogpb.ListBlogResponse{
+			Blog: &blogpb.Blog{
+				Id:       result.ID.Hex(),
+				AuthorId: result.AuthorID,
+				Title:    result.Title,
+				Content:  result.Content,
+			},
+		}
+		stream.Send(res)
+	}
+
+	return nil
 }
 
 func main() {
