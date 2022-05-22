@@ -55,5 +55,5 @@ service BlogService {
     rpc ReadBlog(ReadBlogRequest) returns (ReadBlogResponse) {} // returns NOT_FOUND if not found
     rpc UpdateBlog(UpdateBlogRequest) returns (UpdateBlogResponse) {}
     rpc DeleteBlog(DeleteBlogRequest) returns (DeleteBlogResponse) {}
-    rpc ListBlog(ListBlogRequest)returns (stream ListBlogResponse) {}   
+    rpc ListBlog(ListBlogRequest)returns (stream ListBlogResponse) {}  // stream is used to return a stream of data 
 }
