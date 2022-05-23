@@ -17,4 +17,6 @@ protoc --go_out=. --go_opt=paths=source_relative \
 blog/blogpb/blog.proto
 
 # Generate Python code 
-protoc -I=blog/blogpb --python_out=blog/blogpb blog/blogpb/blog.proto
+python3 -m grpc_tools.protoc -Iblog/blogpb \
+--python_out=blog/blogpb --grpc_python_out=blog/blogpb \
+blog/blogpb/blog.proto

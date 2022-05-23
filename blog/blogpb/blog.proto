@@ -4,6 +4,25 @@ package blog;
 
 option go_package = "./blog/blogpb";
 
+// BlogService is the service definition for BlogService, 
+// the service is there to imitate blog service gRPC.
+service BlogService {
+    // CreateBlog is the RPC to create a blog.
+    rpc CreateBlog(CreateBlogRequest) returns (CreateBlogResponse) {}
+    
+    // ReadBlog is the RPC to read a blog.
+    rpc ReadBlog(ReadBlogRequest) returns (ReadBlogResponse) {} // returns NOT_FOUND if not found
+
+    // UpdateBlog is the RPC to update a blog.
+    rpc UpdateBlog(UpdateBlogRequest) returns (UpdateBlogResponse) {}
+
+    // DeleteBlog is the RPC to delete a blog.
+    rpc DeleteBlog(DeleteBlogRequest) returns (DeleteBlogResponse) {}
+
+    // ListBlog is the RPC to list all blogs.
+    rpc ListBlog(ListBlogRequest)returns (stream ListBlogResponse) {}  // stream is used to return a stream of data 
+}
+
 message Blog {
     string id = 1; 
     string author_id = 2;
@@ -48,12 +67,4 @@ message ListBlogRequest {
 
 message ListBlogResponse {
     Blog blog = 1;
-}
-
-service BlogService {
-    rpc CreateBlog(CreateBlogRequest) returns (CreateBlogResponse) {}
-    rpc ReadBlog(ReadBlogRequest) returns (ReadBlogResponse) {} // returns NOT_FOUND if not found
-    rpc UpdateBlog(UpdateBlogRequest) returns (UpdateBlogResponse) {}
-    rpc DeleteBlog(DeleteBlogRequest) returns (DeleteBlogResponse) {}
-    rpc ListBlog(ListBlogRequest)returns (stream ListBlogResponse) {}  // stream is used to return a stream of data 
 }

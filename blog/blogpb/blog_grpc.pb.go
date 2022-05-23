@@ -22,10 +22,15 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BlogServiceClient interface {
+	// CreateBlog is the RPC to create a blog.
 	CreateBlog(ctx context.Context, in *CreateBlogRequest, opts ...grpc.CallOption) (*CreateBlogResponse, error)
+	// ReadBlog is the RPC to read a blog.
 	ReadBlog(ctx context.Context, in *ReadBlogRequest, opts ...grpc.CallOption) (*ReadBlogResponse, error)
+	// UpdateBlog is the RPC to update a blog.
 	UpdateBlog(ctx context.Context, in *UpdateBlogRequest, opts ...grpc.CallOption) (*UpdateBlogResponse, error)
+	// DeleteBlog is the RPC to delete a blog.
 	DeleteBlog(ctx context.Context, in *DeleteBlogRequest, opts ...grpc.CallOption) (*DeleteBlogResponse, error)
+	// ListBlog is the RPC to list all blogs.
 	ListBlog(ctx context.Context, in *ListBlogRequest, opts ...grpc.CallOption) (BlogService_ListBlogClient, error)
 }
 
@@ -109,10 +114,15 @@ func (x *blogServiceListBlogClient) Recv() (*ListBlogResponse, error) {
 // All implementations must embed UnimplementedBlogServiceServer
 // for forward compatibility
 type BlogServiceServer interface {
+	// CreateBlog is the RPC to create a blog.
 	CreateBlog(context.Context, *CreateBlogRequest) (*CreateBlogResponse, error)
+	// ReadBlog is the RPC to read a blog.
 	ReadBlog(context.Context, *ReadBlogRequest) (*ReadBlogResponse, error)
+	// UpdateBlog is the RPC to update a blog.
 	UpdateBlog(context.Context, *UpdateBlogRequest) (*UpdateBlogResponse, error)
+	// DeleteBlog is the RPC to delete a blog.
 	DeleteBlog(context.Context, *DeleteBlogRequest) (*DeleteBlogResponse, error)
+	// ListBlog is the RPC to list all blogs.
 	ListBlog(*ListBlogRequest, BlogService_ListBlogServer) error
 	mustEmbedUnimplementedBlogServiceServer()
 }
